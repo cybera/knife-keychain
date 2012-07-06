@@ -3,7 +3,11 @@ knife-keychain
 
 Store keys as encrypted data bag items
 
-Example:
+Storage example:
+
+	knife keychain store yoursite-ssl-certificate certificate_file.pem -E production
+
+Retrieval example:
 
 	secret = 'your secret encryption key'
 
