@@ -10,7 +10,8 @@ class Chef
       
       def run
         search(:keychain, default_conditions.join(" AND ")).each do |keychain_item|
-          extra = keychain_item['description'] ? ": #{keychain_item['description']}" : ""
+          extra = keychain_item['group'] ? " (#{keychain_item['group']})" : ""
+          extra += keychain_item['description'] ? ": #{keychain_item['description']}" : ""
           output(format_for_display(keychain_item['name'] + extra))
         end
       end
