@@ -3,7 +3,7 @@ require 'chef/knife/keychain_base'
 
 class Chef
   class Knife
-    class KeychainStore < Knife
+    class KeychainInitialize < Knife
       include Knife::KeychainBase
       
       banner "knife keychain initialize (options)"
