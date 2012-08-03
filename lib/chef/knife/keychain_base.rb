@@ -79,8 +79,8 @@ class Chef
         end
       end
       
-      def default_conditions
-        conditions = ["chef_environment:#{environment}"]
+      def default_conditions(search_environment=environment)
+        conditions = ["chef_environment:#{search_environment}"]
         conditions << "name:#{key_name}" if key_name
         conditions << "group:#{config[:group]}" if config[:group]
         conditions

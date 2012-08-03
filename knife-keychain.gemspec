@@ -4,7 +4,7 @@ require "knife-keychain/version"
 Gem::Specification.new do |s|
   s.name        = 'knife-keychain'
   s.version     = Knife::Keychain::VERSION
-  s.date        = '2012-07-06'
+  s.date        = Time.now.strftime("%Y-%m-%d")
   s.summary     = "Store keys as encrypted data bag items"
   s.description = "Store keys as encrypted data bag items"
   s.authors     = ["David Ackerman"]

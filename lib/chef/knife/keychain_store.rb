@@ -9,6 +9,12 @@ class Chef
       option :description,
       :long  => "--description DESCRIPTION",
       :description => "A description for the key you're storing (optional)"
+
+      option :global,
+      :long  => "--[no-]global",
+      :boolean => true,
+      :description => "Store as global key (default: false)",
+      :default => false
       
       banner "knife keychain store NAME PATH (options)"
       
@@ -20,11 +26,13 @@ class Chef
         raise "You must supply a name and source file for the key!" if !key_name || !key_file_path
         raise "No file found at: #{key_file_path}" if !File.exist?(key_file_path)
 
-        keychain_item = search(:keychain, "chef_environment:#{environment} AND name:#{key_name}").first || Chef::DataBagItem.new
+        store_environment = (config[:global] ? "_default" : environment)
+
+        keychain_item = search(:keychain, "chef_environment:#{store_environment} AND name:#{key_name}").first || Chef::DataBagItem.new
         keychain_item.data_bag("keychain")
         keychain_item.raw_data = {
-          "id" => "#{environment}---#{key_name}",
-          "chef_environment" => environment,
+          "id" => "#{store_environment}---#{key_name}",
+          "chef_environment" => store_environment,
           "name" => key_name,
           "group" => config[:group],
           "description" => config[:description]
@@ -49,8 +57,10 @@ class Chef
         encrypted_keychain_key = Chef::DataBagItem.from_hash(Chef::EncryptedDataBagItem.encrypt_data_bag_item(keychain_key, Chef::EncryptedDataBagItem.load_secret))
         encrypted_keychain_key.data_bag("keychain_keys")
         encrypted_keychain_key.save
-
-        ui.info "Stored attribute '#{key_name}' in the keychain!"
+        
+        global_indicator = config[:global] ? " (as a global key)" : ""
+        
+        ui.info "Stored attribute '#{key_name}' in the keychain#{global_indicator}!\n"
       end
     end
   end
