@@ -41,7 +41,7 @@ class Chef
           ui.info "keychain data bag does not exist - creating..."
           @keychain_bag = Chef::DataBag.new
           @keychain_bag.name("keychain")
-          @keychain_bag.save
+          @keychain_bag.create
         end
         
         @keychain_bag
@@ -54,7 +54,7 @@ class Chef
           ui.info "keychain_keys data bag does not exist - creating..."
           @keychain_keys_bag = Chef::DataBag.new
           @keychain_keys_bag.name("keychain_keys")
-          @keychain_keys_bag.save
+          @keychain_keys_bag.create
         end
         
         @keychain_keys_bag
