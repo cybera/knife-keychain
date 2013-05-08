@@ -6,11 +6,26 @@ class Chef
     class KeychainShow < Knife
       include Knife::KeychainBase
       
+			include Knife::Core::NodeFormattingOptions
+
+			deps do
+				require 'chef/node'
+				require 'chef/json_compat'
+			end
+
       option :global,
       :long  => "--[no-]global",
       :boolean => true,
       :description => "Show the global version of the key, even if it is overridden in the local environment (default: false)",
       :default => false
+
+			@attrs_to_show = []
+
+      option :attribute,
+      :short => "-a [ATTR]",
+      :long => "--attribute",
+      :proc => lambda {|val| @attrs_to_show << val},
+      :description => "Show one or more attributes"
 
       banner "knife keychain show NAME (options)"
       
@@ -39,6 +54,10 @@ class Chef
           output_hash.reject! { |k,v| ['_rev', 'chef_type', 'data_bag'].include?(k) }
           output(format_for_display(output_hash))
         end
+      end
+
+      def self.attrs_to_show=(attrs)
+        @attrs_to_show = attrs
       end
     end
   end
