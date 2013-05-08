@@ -10,7 +10,7 @@ class Chef
       :long  => "--[no-]global",
       :boolean => true,
       :description => "Include global keys in the list (default: true)",
-      :default => true
+      :default => nil
 
       banner "knife keychain list (options)"
 
@@ -18,7 +18,7 @@ class Chef
         key_list = []
         key_defs = {}
 
-        [(config[:global] ? "_default" : nil), environment].compact.uniq.each do |current_environment|
+        [((config[:global].nil? || config[:global]) ? "_default" : nil), (config[:global] ? nil : environment)].compact.uniq.each do |current_environment|
           search(:keychain, default_conditions(current_environment).join(" AND ")).each do |keychain_item|
             key_list << keychain_item['name']
             key_defs[keychain_item['name']] = keychain_item
