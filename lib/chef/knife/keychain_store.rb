@@ -28,14 +28,15 @@ class Chef
 
         store_environment = (config[:global] ? "_default" : environment)
 
+        global_keychain_item = search(:keychain, "chef_environment:_default AND name:#{key_name}").first
         keychain_item = search(:keychain, "chef_environment:#{store_environment} AND name:#{key_name}").first || Chef::DataBagItem.new
         keychain_item.data_bag("keychain")
         keychain_item.raw_data = {
           "id" => "#{store_environment}---#{key_name}",
           "chef_environment" => store_environment,
           "name" => key_name,
-          "group" => config[:group],
-          "description" => config[:description]
+          "group" => config[:group] || keychain_item['group'] || (!global_keychain_item.nil? ? global_keychain_item['group'] : nil),
+          "description" => config[:description] || keychain_item['description'] || (!global_keychain_item.nil? ? global_keychain_item['description'] : nil)
         }
         keychain_item.save
         
