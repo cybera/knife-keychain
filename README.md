@@ -3,44 +3,111 @@ knife-keychain
 
 Store keys as encrypted data bag items
 
-Storage example:
+### Basic usage example:
 
-```ruby
-	knife keychain store yoursite-ssl-certificate certificate_file.pem -E production
+```console
+knife keychain store yoursite-ssl-certificate certificate_file.pem -E production
 ```
 
-Add a description and a group for the key:
+*Add a description and a group for the key:*
 
-```ruby
-	knife keychain store yoursite-ssl-certificate certificate_file.pem -E production --description "this is an ssl certificate" --group ssl
+```console
+knife keychain store yoursite-ssl-certificate certificate_file.pem -E production --description "this is an ssl certificate" --group ssl
 ```
 
 After a description and/or group has been set, subsequent `knife keychain store` commands do not have to specify them (as of v0.1.6). 
 
-The purpose of `description` is simply to better describe what's being stored. `group`, if set, is a way to store keys separately, but retrieve them together. For example:
+### Options:
 
-```ruby
-	knife keychain download --group ssl
+The purpose of `--description` is simply to better describe what's being stored. `--group`, if set, is a way to store keys separately, but retrieve them together. For example:
+
+```console
+knife keychain download --group ssl
 ```
 
 would output all stored keys in the ssl group in a concatenated form.
 
-Retrieval example:
-```ruby
-	secret = 'your secret encryption key'
+`--global` specifies to look at or work with only keys at the global level (shared by all environments).
 
-	key_record = search(:keychain, "chef_environment:production AND name:yoursite-ssl-certificate").first
-	if key_record
-		key = Chef::EncryptedDataBagItem.load(:keychain_keys, key_record.id, secret)
+`--environment` works as it does in other knife commands. It will constrain the command to work within the environment you specify.
 
-		file "/etc/apache2/ssl/yoursite-ssl-certificate.pem" do
-			content key['content']
-			mode 0600
-		end
-	end
+### Creating, modifying, and removing keys:
+
+Create a brand new key for the production environment:
+
+```console
+knife keychain store some-key-name files/some-key-file --group ssl-key --description "private key for ssl cert" --environment production
 ```
 
-The following is a more involved method you can use in a cookbook to allow "global" keys by using the _default environment to store globals:
+Update the key you created with content from another file:
+
+```console
+knife keychain store some-key-name files/some-other-key-file --environment production
+```
+
+Delete your key from the production environment
+
+```console
+knife keychain remove some-key-name --environment production
+```
+
+### Displaying keys:
+
+List only global-level keys
+
+```console
+knife keychain list --global
+```
+
+List only keys that are specific to the production environment
+
+```console
+knife keychain list --no-global --environment production
+```
+
+List keys specific to the production environment, inheriting any from the global level if they are not overridden
+
+```console
+knife keychain list --environment production
+```
+
+Show meta-information and decrypted content of a key
+
+```console
+knife keychain show some-key-name
+```
+
+Show all information about keys in the "git" group
+
+```console
+knife keychain show --group git
+```
+
+Download the raw decrypted key content:
+
+```console
+knife keychain download some-key-name >downloaded-key.pem
+```
+
+### Usage in cookbooks:
+
+Simplest retrieval example:
+
+```ruby
+secret = 'your secret encryption key'
+
+key_record = search(:keychain, "chef_environment:production AND name:yoursite-ssl-certificate").first
+if key_record
+	key = Chef::EncryptedDataBagItem.load(:keychain_keys, key_record.id, secret)
+
+	file "/etc/apache2/ssl/yoursite-ssl-certificate.pem" do
+		content key['content']
+		mode 0600
+	end
+end
+```
+
+knife-keychain is really just an easy way to work with two databags: *keychain* (plain) and *keychain_keys* (encrypted). If you want, you can operate with either data bag directly via the typical knife data bag tools. You can also use the information in any way you would use regular data bags within your recipes. However, due to the use of the _default environment as a "global" level which your other environments can inherit from, you'll likely want to do something like this:
 
 ```ruby
 def keychain_key_for_group(group_name)
@@ -57,4 +124,4 @@ def keychain_key_for_group(group_name)
 end
 ```
 
-Note that this also will concatenate any keys with the same group name.
+Note that this also will concatenate any keys with the same group name. It will "override" any key defined in the _default environment with one defined in your node's environment.
