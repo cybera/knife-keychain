@@ -85,6 +85,40 @@ class Chef
         conditions << "group:#{config[:group]}" if config[:group]
         conditions
       end
+
+      def read_key(keychain_item)
+          begin
+            keychain_key = Chef::EncryptedDataBagItem.load(:keychain_keys, keychain_item.id, read_secret).to_hash
+          rescue Net::HTTPServerException => e
+            raise e if !e.response.is_a?(Net::HTTPNotFound)
+            keychain_key = { "content" => "" }
+          end
+
+          keychain_key["content"]
+      end
+
+      def store_key(keychain_item, key)
+        begin
+          keychain_key = Chef::EncryptedDataBagItem.load(:keychain_keys, keychain_item.id).to_hash
+        rescue Net::HTTPServerException => e
+          if e.response.is_a?(Net::HTTPNotFound)
+            keychain_key = {
+              "id" => keychain_item.id
+            }
+          else
+            raise e
+          end
+        end
+
+        keychain_key["content"] = key
+
+        encrypted_keychain_key = Chef::DataBagItem.from_hash(Chef::EncryptedDataBagItem.encrypt_data_bag_item(keychain_key, Chef::EncryptedDataBagItem.load_secret))
+        encrypted_keychain_key.data_bag("keychain_keys")
+        encrypted_keychain_key.save
+      end
+
+      def validate!
+      end
     end
   end
 end
