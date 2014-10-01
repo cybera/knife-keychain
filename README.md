@@ -15,7 +15,7 @@ knife keychain store yoursite-ssl-certificate certificate_file.pem -E production
 knife keychain store yoursite-ssl-certificate certificate_file.pem -E production --description "this is an ssl certificate" --group ssl
 ```
 
-After a description and/or group has been set, subsequent `knife keychain store` commands do not have to specify them (as of v0.1.6). 
+After a description and/or group has been set, subsequent `knife keychain store` commands do not have to specify them (as of v0.1.6).
 
 ### Options:
 
@@ -88,6 +88,24 @@ Download the raw decrypted key content:
 ```console
 knife keychain download some-key-name >downloaded-key.pem
 ```
+
+### Copying keys:
+
+Copy all keys unique to SOME_ENVIRONMENT into OTHER_ENVIRONMENT
+
+```console
+knife keychain copy --source-environment SOME_ENVIRONMENT --destination-environment OTHER_ENVIRONMENT
+```
+
+Copy a single key unique to SOME_ENVIRONMENT into OTHER_ENVIRONMENT
+
+```console
+knife keychain copy --source-environment SOME_ENVIRONMENT --destination-environment OTHER_ENVIRONMENT SINGLE_KEY_NAME
+```
+
+Note: the copy command will not copy *global* keys (indicated with \* to the left of the name in a key listing),
+as these keys are not actually in the source-environment (they're inherited from the \_default environment). To
+see what the command will actually copy, run `knife keychain list --environment SOME_ENVIRONMENT --no-global`.
 
 ### Usage in cookbooks:
 
