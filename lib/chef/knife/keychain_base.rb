@@ -13,14 +13,14 @@ class Chef
           option :secret_file,
           :long => "--secret-file SECRET_FILE",
           :description => "A file containing the secret key to use to encrypt data bag item values"
-          
+
           option :group,
           :short => "-g GROUP",
           :long => "--group GROUP",
           :description => "An optional group, which can be searched. The default is no group."
         end
       end
-      
+
       def environment
         config[:environment] ||= (Chef::Config[:environment] || '_default')
         config[:environment]
@@ -29,7 +29,7 @@ class Chef
       def key_name
         name_args[0]
       end
-      
+
       def key_file_path
         name_args[1]
       end
@@ -43,7 +43,7 @@ class Chef
           @keychain_bag.name("keychain")
           @keychain_bag.create
         end
-        
+
         @keychain_bag
       end
 
@@ -56,7 +56,7 @@ class Chef
           @keychain_keys_bag.name("keychain_keys")
           @keychain_keys_bag.create
         end
-        
+
         @keychain_keys_bag
       end
 
@@ -66,11 +66,11 @@ class Chef
         #
         #   [ response["rows"], response["start"], response["total"] ]
         #
-        # which is kind of confusing when you don't need the rest of the data. In our case, 
+        # which is kind of confusing when you don't need the rest of the data. In our case,
         # we don't... thus this wrapper method!
         query.search(data_bag_name, conditions).first
       end
-      
+
       def read_secret
         if config[:secret]
           config[:secret]
@@ -78,7 +78,7 @@ class Chef
           Chef::EncryptedDataBagItem.load_secret(config[:secret_file])
         end
       end
-      
+
       def default_conditions(search_environment=environment)
         conditions = ["chef_environment:#{search_environment}"]
         conditions << "name:#{key_name}" if key_name
@@ -99,7 +99,7 @@ class Chef
 
       def store_key(keychain_item, key)
         begin
-          keychain_key = Chef::EncryptedDataBagItem.load(:keychain_keys, keychain_item.id).to_hash
+          keychain_key = Chef::EncryptedDataBagItem.load(:keychain_keys, keychain_item.id, read_secret).to_hash
         rescue Net::HTTPServerException => e
           if e.response.is_a?(Net::HTTPNotFound)
             keychain_key = {
@@ -112,7 +112,7 @@ class Chef
 
         keychain_key["content"] = key
 
-        encrypted_keychain_key = Chef::DataBagItem.from_hash(Chef::EncryptedDataBagItem.encrypt_data_bag_item(keychain_key, Chef::EncryptedDataBagItem.load_secret))
+        encrypted_keychain_key = Chef::DataBagItem.from_hash(Chef::EncryptedDataBagItem.encrypt_data_bag_item(keychain_key, read_secret))
         encrypted_keychain_key.data_bag("keychain_keys")
         encrypted_keychain_key.save
       end
@@ -122,4 +122,3 @@ class Chef
     end
   end
 end
-
