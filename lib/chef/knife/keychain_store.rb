@@ -54,8 +54,8 @@ class Chef
         end
 
         keychain_key["content"] = IO.read(key_file_path)
-        
-        encrypted_keychain_key = Chef::DataBagItem.from_hash(Chef::EncryptedDataBagItem.encrypt_data_bag_item(keychain_key, Chef::EncryptedDataBagItem.load_secret))
+
+        encrypted_keychain_key = Chef::DataBagItem.from_hash(Chef::EncryptedDataBagItem.encrypt_data_bag_item(keychain_key, read_secret))
         encrypted_keychain_key.data_bag("keychain_keys")
         encrypted_keychain_key.save
         
