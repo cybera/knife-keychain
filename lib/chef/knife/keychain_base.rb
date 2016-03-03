@@ -71,11 +71,15 @@ class Chef
         query.search(data_bag_name, conditions).first
       end
 
-      def read_secret
-        if config[:secret]
-          config[:secret]
+      def read_secret(secret_file=nil)
+        if secret_file
+          Chef::EncryptedDataBagItem.load_secret(secret_file)
         else
-          Chef::EncryptedDataBagItem.load_secret(config[:secret_file])
+          if config[:secret]
+            config[:secret]
+          else
+            Chef::EncryptedDataBagItem.load_secret(config[:secret_file])
+          end
         end
       end
 
@@ -86,33 +90,46 @@ class Chef
         conditions
       end
 
-      def read_key(keychain_item)
+      def read_key(keychain_item, secret_files=nil)
+        secrets = [ secret_files ].flatten.compact.map { | secret_file | read_secret(secret_file) }
+
+        decryption_failure = nil
+        keychain_key = nil
+        secrets.each do | secret |
           begin
-            keychain_key = Chef::EncryptedDataBagItem.load(:keychain_keys, keychain_item.id, read_secret).to_hash
+            keychain_key = Chef::EncryptedDataBagItem.load(:keychain_keys, keychain_item.id, secret).to_hash
+            break
+          rescue Chef::EncryptedDataBagItem::DecryptionFailure => e
+            decryption_failure = e
           rescue Net::HTTPServerException => e
-            raise e if !e.response.is_a?(Net::HTTPNotFound)
-            keychain_key = { "content" => "" }
-          end
-
-          keychain_key["content"]
-      end
-
-      def store_key(keychain_item, key)
-        begin
-          keychain_key = Chef::EncryptedDataBagItem.load(:keychain_keys, keychain_item.id, read_secret).to_hash
-        rescue Net::HTTPServerException => e
-          if e.response.is_a?(Net::HTTPNotFound)
-            keychain_key = {
-              "id" => keychain_item.id
-            }
-          else
-            raise e
+            if e.response.is_a?(Net::HTTPNotFound)
+              keychain_key = {
+                "id" => keychain_item.id,
+                "content" => ""
+              }
+            else
+              raise e
+            end
           end
         end
 
-        keychain_key["content"] = key
+        if !keychain_key && decryption_failure
+          puts "None of the previous secrets provided could decrypt the keychain data"
+          raise decryption_failure
+        end
+        
+        keychain_key["content"]
+      end
 
-        encrypted_keychain_key = Chef::DataBagItem.from_hash(Chef::EncryptedDataBagItem.encrypt_data_bag_item(keychain_key, read_secret))
+      def store_key(keychain_item, key, secret_file=nil)
+        secret = read_secret(secret_file)
+
+        keychain_key = {
+          "id" => keychain_item.id,
+          "content" => key
+        }
+
+        encrypted_keychain_key = Chef::DataBagItem.from_hash(Chef::EncryptedDataBagItem.encrypt_data_bag_item(keychain_key, secret))
         encrypted_keychain_key.data_bag("keychain_keys")
         encrypted_keychain_key.save
       end
