@@ -22,7 +22,7 @@ class Chef
         keychain_items = search(:keychain, default_conditions(store_environment).join(" AND "))
         keychain_item_names = keychain_items.map { |keychain_item| keychain_item['name'] }.join("\n")
         
-        confirm("\n#{keychain_item_names}\n\nDo you really want to delete the above #{global_indicator}keys from the keychain?")
+        confirm("\n#{keychain_item_names}\n\nDo you really want to delete the above #{global_indicator}keys from the keychain")
 
         keychain_items.each do |keychain_item|
           begin

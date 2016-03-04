@@ -14,30 +14,65 @@ class Chef
       :long  => "--new-key-file NAME",
       :description => "New data bag secret key"
 
-      option :global,
-      :long  => "--[no-]global",
+      option :query,
+      :long => "--query",
+      :description => "Reencrypt all keys matching the query (expects the main parameter to be a query, not a name)",
       :boolean => true,
-      :description => "Store as global key (default: false)",
       :default => false
-      
-      banner "knife keychain reencrypt NAME PATH (options)"
+
+      banner "knife keychain reencrypt NAME|QUERY (options)"
       
       def run
         # Initialize the keychain and keychain_keys data bags
         keychain_bag
         keychain_keys_bag
 
-        store_environment = (config[:global] ? "_default" : environment)
+        validate!
 
-        global_keychain_item = search(:keychain, "chef_environment:_default AND name:#{key_name}").first
-        keychain_item = search(:keychain, "chef_environment:#{store_environment} AND name:#{key_name}").first
+        if config[:query]
+          query = key_name
+          keychain_items = search(:keychain, query)
+          keychain_item_names = keychain_items.map do |keychain_item|
+            "#{keychain_item[:name]} #{_global_indicator(keychain_item)}"
+          end.join("\n")
+          confirm("\n#{keychain_item_names}\n\nDo you really want to reencrypt the above keys from the keychain")
+        else
+          keychain_items = search(:keychain, "chef_environment:#{environment} AND name:#{key_name}")
+        end
 
-        keychain_key = read_key(keychain_item, [config[:current_key_file], config[:new_key_file]])
-        store_key(keychain_item, keychain_key, config[:new_key_file])
+        keychain_items.each do | keychain_item |
+          keychain_key = read_key(keychain_item, [config[:current_key_file], config[:new_key_file]])
+          store_key(keychain_item, keychain_key, config[:new_key_file])
+
+          ui.info "Reencrypted '#{keychain_item[:name]}' #{_global_indicator(keychain_item)}!\n"
+        end
+      end
+
+      def validate!
         
-        global_indicator = config[:global] ? " (as a global key)" : ""
+        error_messages = []
+        if !config[:current_key_file]
+          error_messages << "Must set --current-key-file option"
+        end
         
-        ui.info "Reencrypted attribute '#{key_name}' in the keychain#{global_indicator}!\n"
+        if !config[:new_key_file] && (!read_secret || read_secret == "")
+          error_messages << "Must either set --new-key-file option or have knife[:secret_file] set in your config"
+        end
+        
+        if error_messages.any?
+          error_messages.each do | error_message |
+            ui.error(error_message)
+          end
+          exit 1
+        end
+      end
+
+      def _global_indicator(keychain_item)
+        if keychain_item[:chef_environment] == "_default"
+          "(as a global key)"
+        else
+          "(#{keychain_item[:chef_environment]})"
+        end
       end
     end
   end

@@ -41,7 +41,7 @@ class Chef
         keychain_item.save
         
         begin
-          keychain_key = Chef::EncryptedDataBagItem.load(:keychain_keys, keychain_item.id).to_hash
+          keychain_key = Chef::EncryptedDataBagItem.load(:keychain_keys, keychain_item.id, read_secret).to_hash
         rescue Net::HTTPServerException => e
           if e.response.is_a?(Net::HTTPNotFound)
             ui.info "creating encrypted keychain_key for '#{key_name}'"
