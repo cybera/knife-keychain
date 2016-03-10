@@ -93,6 +93,10 @@ class Chef
       def read_key(keychain_item, secret_files=nil)
         secrets = [ secret_files ].flatten.compact.map { | secret_file | read_secret(secret_file) }
 
+        if secrets.empty?
+          secrets = [ read_secret ]
+        end
+
         decryption_failure = nil
         keychain_key = nil
         secrets.each do | secret |
